@@ -126,6 +126,7 @@ type torrentGetResults struct {
 type Torrent struct {
 	ActivityDate            *time.Time         `json:"activityDate"`
 	AddedDate               *time.Time         `json:"addedDate"`
+	Availability            []int64            `json:"availability"`
 	BandwidthPriority       *int64             `json:"bandwidthPriority"`
 	Comment                 *string            `json:"comment"`
 	CorruptEver             *int64             `json:"corruptEver"`
@@ -144,6 +145,7 @@ type Torrent struct {
 	EtaIdle                 *int64             `json:"etaIdle"`
 	Files                   []*TorrentFile     `json:"files"`
 	FileStats               []*TorrentFileStat `json:"fileStats"`
+	Group                   *string            `json:"group"`
 	HashString              *string            `json:"hashString"`
 	HaveUnchecked           *int64             `json:"haveUnchecked"`
 	HaveValid               *int64             `json:"haveValid"`
@@ -165,6 +167,7 @@ type Torrent struct {
 	PeersFrom               *TorrentPeersFrom  `json:"peersFrom"`
 	PeersGettingFromUs      *int64             `json:"peersGettingFromUs"`
 	PeersSendingToUs        *int64             `json:"peersSendingToUs"`
+	PercentComplete         *float64           `json:"percentComplete"`
 	PercentDone             *float64           `json:"percentDone"`
 	Pieces                  *string            `json:"pieces"` // https://github.com/transmission/transmission/blob/3.00/extras/rpc-spec.txt#L300
 	PieceCount              *int64             `json:"pieceCount"`
@@ -184,6 +187,7 @@ type Torrent struct {
 	StartDate               *time.Time         `json:"startDate"`
 	Status                  *TorrentStatus     `json:"status"`
 	Trackers                []*Tracker         `json:"trackers"`
+	TrackerList             *string            `json:"trackerList"`
 	TrackerStats            []*TrackerStats    `json:"trackerStats"`
 	TotalSize               *cunits.Bits       `json:"totalSize"`
 	TorrentFile             *string            `json:"torrentFile"`
@@ -217,17 +221,16 @@ func (t *Torrent) UnmarshalJSON(data []byte) (err error) {
 	// Shadow real type for regular unmarshalling
 	type RawTorrent Torrent
 	tmp := &struct {
-		ActivityDate   *int64  `json:"activityDate"`
-		AddedDate      *int64  `json:"addedDate"`
-		DateCreated    *int64  `json:"dateCreated"`
-		DoneDate       *int64  `json:"doneDate"`
-		EditDate       *int64  `json:"editDate"`
-		PieceSize      *int64  `json:"pieceSize"`
-		SecondsSeeding *int64  `json:"secondsSeeding"`
-		SizeWhenDone   *int64  `json:"sizeWhenDone"`
-		StartDate      *int64  `json:"startDate"`
-		TotalSize      *int64  `json:"totalSize"`
-		Wanted         []int64 `json:"wanted"` // boolean in number form
+		ActivityDate   *int64 `json:"activityDate"`
+		AddedDate      *int64 `json:"addedDate"`
+		DateCreated    *int64 `json:"dateCreated"`
+		DoneDate       *int64 `json:"doneDate"`
+		EditDate       *int64 `json:"editDate"`
+		PieceSize      *int64 `json:"pieceSize"`
+		SecondsSeeding *int64 `json:"secondsSeeding"`
+		SizeWhenDone   *int64 `json:"sizeWhenDone"`
+		StartDate      *int64 `json:"startDate"`
+		TotalSize      *int64 `json:"totalSize"`
 		*RawTorrent
 	}{
 		RawTorrent: (*RawTorrent)(t),
@@ -276,17 +279,6 @@ func (t *Torrent) UnmarshalJSON(data []byte) (err error) {
 	if tmp.TotalSize != nil {
 		ts := cunits.ImportInByte(float64(*tmp.TotalSize))
 		t.TotalSize = &ts
-	}
-	// Boolean slice in decimal form
-	if tmp.Wanted != nil {
-		t.Wanted = make([]bool, len(tmp.Wanted))
-		for index, value := range tmp.Wanted {
-			if value == 1 {
-				t.Wanted[index] = true
-			} else if value != 0 {
-				return fmt.Errorf("can't convert wanted index %d value '%d' as boolean", index, value)
-			}
-		}
 	}
 	return
 }
